@@ -1,0 +1,341 @@
+import streamlit as st
+import pandas as pd
+import plotly.express as px
+
+# --- ページ設定 ---
+st.set_page_config(page_title="キャロットクラブ2025 分析ツール", layout="wide")
+st.title("🏇 キャロットクラブ2025 募集馬分析ツール (ローカルテスト版)")
+
+# --- カスタムCSSの適用（ダイアログの縦幅を広げる） ---
+st.markdown("""
+<style>
+/* ダイアログウィンドウ全体の最小高さを画面の80%に設定 */
+div[data-testid="stDialog"] > div {
+    min-height: 80vh;
+}
+
+/* マルチセレクト（種牡馬・厩舎の選択タグ一覧）の表示エリアの最大高さを大幅に広げる */
+div[data-baseweb="select"] > div {
+    max-height: 60vh !important;
+}
+
+/* === キャロットクラブ風の配色設定 === */
+/* 見出し（タイトル、サブタイトル）をキャロットグリーンに */
+h1, h2, h3 {
+    color: #004d25 !important;
+}
+
+/* サマリーの数値（KPI）をキャロットオレンジに */
+div[data-testid="stMetricValue"] {
+    color: #f05a28 !important;
+}
+
+/* プライマリボタン（ダイアログの「決定して閉じる」など）をキャロットグリーンに */
+button[kind="primary"] {
+    background-color: #004d25 !important;
+    border-color: #004d25 !important;
+    color: white !important;
+}
+
+/* 通常のボタン（サイドバーの「選択する」など）の枠線・文字色をキャロットグリーンに */
+button[kind="secondary"] {
+    border-color: #004d25 !important;
+    color: #004d25 !important;
+}
+button[kind="secondary"]:hover {
+    background-color: #004d25 !important;
+    color: white !important;
+}
+
+/* スライダーの色をキャロットグリーンに */
+div.stSlider > div > div > div > div {
+    background-color: #004d25 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# --- データの読み込み ---
+@st.cache_data
+def load_data():
+    # CSVの読み込み（Windows/Macのエンコーディングの違いを吸収）
+    try:
+        df = pd.read_csv("【公開用】キャロットクラブ2025募集馬リスト - list.csv", encoding="utf-8")
+    except UnicodeDecodeError:
+        df = pd.read_csv("【公開用】キャロットクラブ2025募集馬リスト - list.csv", encoding="cp932")
+    
+    # 生年月日のデータ型を日付型（datetime）に変換し、月を取り出す処理を追加
+    # "05/02" のような形式を想定
+    df['誕生月'] = pd.to_datetime(df['生年月日'], format='%m/%d', errors='coerce').dt.month
+    
+    return df
+
+df = load_data()
+
+# --- 選択肢の準備とセッションステートの初期化 ---
+sire_options = sorted(df['父名'].dropna().unique())
+bms_options = sorted(df['母父'].dropna().unique())
+trainer_options = sorted(df['厩舎'].dropna().unique())
+
+if 'selected_sire' not in st.session_state:
+    st.session_state.selected_sire = sire_options
+if 'selected_bms' not in st.session_state:
+    st.session_state.selected_bms = bms_options
+if 'selected_trainer' not in st.session_state:
+    st.session_state.selected_trainer = trainer_options
+
+# --- ダイアログ（モーダルウィンドウ）の定義 ---
+@st.dialog("🐎 種牡馬の選択", width="large")
+def sire_dialog():
+    st.markdown("不要な種牡馬を「×」で消してください。枠内をクリックして検索も可能です。")
+    selected = st.multiselect(
+        "父名（種牡馬）", 
+        options=sire_options, 
+        default=st.session_state.selected_sire,
+        label_visibility="collapsed"
+    )
+    
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col1:
+        if st.button("✅ 決定して閉じる", key="sire_close", use_container_width=True, type="primary"):
+            st.session_state.selected_sire = selected
+            st.rerun()
+    with col2:
+        if st.button("🔄 全選択", key="sire_all", use_container_width=True):
+            st.session_state.selected_sire = sire_options
+            st.rerun()
+    with col3:
+        if st.button("🗑️ 全解除", key="sire_clear", use_container_width=True):
+            st.session_state.selected_sire = []
+            st.rerun()
+
+@st.dialog("🐴 母父の選択", width="large")
+def bms_dialog():
+    st.markdown("不要な母父を「×」で消してください。枠内をクリックして検索も可能です。")
+    selected = st.multiselect(
+        "母父", 
+        options=bms_options, 
+        default=st.session_state.selected_bms,
+        label_visibility="collapsed"
+    )
+    
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col1:
+        if st.button("✅ 決定して閉じる", key="bms_close", use_container_width=True, type="primary"):
+            st.session_state.selected_bms = selected
+            st.rerun()
+    with col2:
+        if st.button("🔄 全選択", key="bms_all", use_container_width=True):
+            st.session_state.selected_bms = bms_options
+            st.rerun()
+    with col3:
+        if st.button("🗑️ 全解除", key="bms_clear", use_container_width=True):
+            st.session_state.selected_bms = []
+            st.rerun()
+
+@st.dialog("🏢 厩舎の選択", width="large")
+def trainer_dialog():
+    st.markdown("不要な厩舎を「×」で消してください。枠内をクリックして検索も可能です。")
+    selected = st.multiselect(
+        "厩舎", 
+        options=trainer_options, 
+        default=st.session_state.selected_trainer,
+        label_visibility="collapsed"
+    )
+    
+    col1, col2, col3 = st.columns([2, 1, 1])
+    with col1:
+        if st.button("✅ 決定して閉じる", key="trainer_close", use_container_width=True, type="primary"):
+            st.session_state.selected_trainer = selected
+            st.rerun()
+    with col2:
+        if st.button("🔄 全選択", key="trainer_all", use_container_width=True):
+            st.session_state.selected_trainer = trainer_options
+            st.rerun()
+    with col3:
+        if st.button("🗑️ 全解除", key="trainer_clear", use_container_width=True):
+            st.session_state.selected_trainer = []
+            st.rerun()
+
+# --- サイドバー：フィルター機能 ---
+st.sidebar.header("🔍 分析条件の設定")
+st.sidebar.caption("※不要な項目の「×」を押して対象を絞り込んでください。")
+
+# 所属フィルターを追加
+shozoku_options = sorted(df['所属'].dropna().unique())
+selected_shozoku = st.sidebar.multiselect(
+    "所属", 
+    options=shozoku_options, 
+    default=shozoku_options # 最初から全て選択
+)
+filter_shozoku = selected_shozoku
+
+# 性別フィルター
+sex_options = sorted(df['性'].dropna().unique())
+selected_sex = st.sidebar.multiselect(
+    "性別", 
+    options=sex_options, 
+    default=sex_options # 最初から全て選択
+)
+filter_sex = selected_sex
+
+# 母優先フィルターを追加
+bousyu_options = sorted(df['母優'].dropna().unique())
+selected_bousyu = st.sidebar.multiselect(
+    "母優先", 
+    options=bousyu_options, 
+    default=bousyu_options # 最初から全て選択
+)
+filter_bousyu = selected_bousyu
+
+# ダイアログを呼び出すボタン（種牡馬）
+st.sidebar.markdown("---")
+st.sidebar.subheader("🐎 種牡馬")
+if st.sidebar.button("🔍 種牡馬を選択する", use_container_width=True):
+    sire_dialog()
+st.sidebar.caption(f"選択中: {len(st.session_state.selected_sire)} / {len(sire_options)} 種類")
+
+# ダイアログを呼び出すボタン（母父）
+st.sidebar.markdown("---")
+st.sidebar.subheader("🐴 母父")
+if st.sidebar.button("🔍 母父を選択する", use_container_width=True):
+    bms_dialog()
+st.sidebar.caption(f"選択中: {len(st.session_state.selected_bms)} / {len(bms_options)} 種類")
+
+# ダイアログを呼び出すボタン（厩舎）
+st.sidebar.markdown("---")
+st.sidebar.subheader("🏢 厩舎")
+if st.sidebar.button("🔍 厩舎を選択する", use_container_width=True):
+    trainer_dialog()
+st.sidebar.caption(f"選択中: {len(st.session_state.selected_trainer)} / {len(trainer_options)} 厩舎")
+
+# 育成牧場フィルター
+farm_options = sorted(df['育成牧場'].dropna().unique())
+selected_farm = st.sidebar.multiselect(
+    "育成牧場", 
+    options=farm_options, 
+    default=farm_options # 最初から全て選択
+)
+filter_farm = selected_farm
+
+# 誕生月フィルターを追加（スライダー）
+min_month = int(df['誕生月'].min(skipna=True))
+max_month = int(df['誕生月'].max(skipna=True))
+selected_month_range = st.sidebar.slider(
+    "誕生月",
+    min_value=min_month,
+    max_value=max_month,
+    value=(min_month, max_month)
+)
+
+# 価格情報フィルター（スライダー）を追加
+st.sidebar.markdown("---")
+st.sidebar.subheader("💰 価格情報の設定")
+
+min_price = int(df['価格帯'].min(skipna=True))
+max_price = int(df['価格帯'].max(skipna=True))
+selected_price = st.sidebar.slider(
+    "募集価格 (万円)", 
+    min_value=min_price, 
+    max_value=max_price, 
+    value=(min_price, max_price),
+    step=100
+)
+
+# 体部情報フィルター（スライダー）を追加
+st.sidebar.markdown("---")
+st.sidebar.subheader("📐 体部情報の設定")
+
+min_height = float(df['体高'].min(skipna=True))
+max_height = float(df['体高'].max(skipna=True))
+selected_height = st.sidebar.slider("体高 (cm)", min_value=min_height, max_value=max_height, value=(min_height, max_height))
+
+min_chest = float(df['胸囲'].min(skipna=True))
+max_chest = float(df['胸囲'].max(skipna=True))
+selected_chest = st.sidebar.slider("胸囲 (cm)", min_value=min_chest, max_value=max_chest, value=(min_chest, max_chest))
+
+min_canon = float(df['管囲'].min(skipna=True))
+max_canon = float(df['管囲'].max(skipna=True))
+selected_canon = st.sidebar.slider("管囲 (cm)", min_value=min_canon, max_value=max_canon, value=(min_canon, max_canon))
+
+min_weight = float(df['馬体重'].min(skipna=True))
+max_weight = float(df['馬体重'].max(skipna=True))
+selected_weight = st.sidebar.slider("馬体重 (kg)", min_value=min_weight, max_value=max_weight, value=(min_weight, max_weight))
+
+# フィルターの適用
+filtered_df = df[
+    (df['所属'].isin(filter_shozoku)) & 
+    (df['性'].isin(filter_sex)) & 
+    (df['母優'].isin(filter_bousyu)) &
+    (df['父名'].isin(st.session_state.selected_sire)) &
+    (df['母父'].isin(st.session_state.selected_bms)) &
+    (df['厩舎'].isin(st.session_state.selected_trainer)) &
+    (df['育成牧場'].isin(filter_farm)) &
+    (df['誕生月'].between(selected_month_range[0], selected_month_range[1])) &
+    (df['価格帯'].between(selected_price[0], selected_price[1])) &
+    (df['体高'].between(selected_height[0], selected_height[1])) &
+    (df['胸囲'].between(selected_chest[0], selected_chest[1])) &
+    (df['管囲'].between(selected_canon[0], selected_canon[1])) &
+    (df['馬体重'].between(selected_weight[0], selected_weight[1]))
+]
+
+# --- メイン画面：サマリ（KPI） ---
+st.subheader("📊 サマリ情報")
+col1, col2, col3, col4 = st.columns(4)
+col1.metric("対象馬数", f"{len(filtered_df)} 頭")
+
+if len(filtered_df) > 0:
+    col2.metric("平均馬体重", f"{filtered_df['馬体重'].mean():.1f} kg")
+    col3.metric("平均管囲", f"{filtered_df['管囲'].mean():.1f} cm")
+    # 価格帯は数値（例：8000 = 8,000万円）として計算
+    col4.metric("平均価格帯", f"{filtered_df['価格帯'].mean() / 100:.1f} 万円")
+else:
+    st.warning("条件に一致する馬がいません。フィルターを変更してください。")
+
+# --- 可視化：散布図 ---
+st.subheader("📈 馬体重 × 管囲 × 価格帯 の関係")
+st.markdown("横軸に馬体重、縦軸に管囲を取り、**バブルの大きさで価格帯**、**色で種牡馬**を表現しています。マウスを合わせると詳細が表示されます。")
+
+if len(filtered_df) > 0:
+    # キャロット風カラーパレット（グリーン、オレンジ、ゴールド等を基調に）
+    carrot_colors = ['#004d25', '#f05a28', '#a38753', '#1c2833', '#7b241c', '#0e6655', '#d35400', '#17202a']
+    
+    fig = px.scatter(
+        filtered_df, 
+        x="馬体重", 
+        y="管囲", 
+        size="価格帯", 
+        color="父名",
+        hover_name="募集馬名",
+        # ツールチップに生年月日と厩舎を追加
+        hover_data={"厩舎": True, "生年月日": True, "募集価格": True, "価格帯": False},
+        height=600,
+        color_discrete_sequence=carrot_colors
+    )
+    # グラフのレイアウト調整
+    fig.update_layout(xaxis_title="馬体重 (kg)", yaxis_title="管囲 (cm)")
+    st.plotly_chart(fig, use_container_width=True)
+
+# --- 新しい可視化：厩舎別の平均馬体重・管囲（棒グラフ） ---
+st.subheader("🏢 厩舎別の体部アベレージ")
+if len(filtered_df) > 0:
+    # 厩舎ごとの平均を計算
+    trainer_stats = filtered_df.groupby('厩舎')[['馬体重', '管囲']].mean().reset_index()
+    
+    # 馬体重の棒グラフ
+    fig_trainer = px.bar(
+        trainer_stats, 
+        x='厩舎', 
+        y='馬体重', 
+        title="厩舎別の平均馬体重",
+        text_auto='.1f',
+        color='馬体重',
+        color_continuous_scale=['#cce3d5', '#004d25'] # 薄緑からキャロットグリーンへのグラデーション
+    )
+    fig_trainer.update_layout(xaxis_tickangle=-45) # 厩舎名が重ならないように斜めにする
+    st.plotly_chart(fig_trainer, use_container_width=True)
+
+# --- データテーブル ---
+st.subheader("📋 募集馬リスト")
+# 表示項目に体高と胸囲も追加し、並び順を調整
+display_columns = ["No.", "募集馬名", "所属", "父名", "母父", "母優", "性", "生年月日", "厩舎", "募集価格", "体高", "胸囲", "管囲", "馬体重", "育成牧場"]
+st.dataframe(filtered_df[display_columns], use_container_width=True)
