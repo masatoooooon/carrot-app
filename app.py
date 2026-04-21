@@ -187,6 +187,15 @@ selected_bousyu = st.sidebar.multiselect(
 )
 filter_bousyu = selected_bousyu
 
+# 育成牧場フィルター
+farm_options = sorted(df['育成牧場'].dropna().unique())
+selected_farm = st.sidebar.multiselect(
+    "育成牧場", 
+    options=farm_options, 
+    default=farm_options # 最初から全て選択
+)
+filter_farm = selected_farm
+
 # ダイアログを呼び出すボタン（種牡馬）
 st.sidebar.markdown("---")
 st.sidebar.subheader("🐎 種牡馬")
@@ -207,15 +216,6 @@ st.sidebar.subheader("🏢 厩舎")
 if st.sidebar.button("🔍 厩舎を選択する", use_container_width=True):
     trainer_dialog()
 st.sidebar.caption(f"選択中: {len(st.session_state.selected_trainer)} / {len(trainer_options)} 厩舎")
-
-# 育成牧場フィルター
-farm_options = sorted(df['育成牧場'].dropna().unique())
-selected_farm = st.sidebar.multiselect(
-    "育成牧場", 
-    options=farm_options, 
-    default=farm_options # 最初から全て選択
-)
-filter_farm = selected_farm
 
 # 誕生月フィルターを追加（スライダー）
 min_month = int(df['誕生月'].min(skipna=True))
