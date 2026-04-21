@@ -59,9 +59,9 @@ div.stSlider > div > div > div > div {
 def load_data():
     # CSVの読み込み（Windows/Macのエンコーディングの違いを吸収）
     try:
-        df = pd.read_csv("【公開用】キャロットクラブ2025募集馬リスト - list.csv", encoding="utf-8")
+        df = pd.read_csv("list.csv", encoding="utf-8")
     except UnicodeDecodeError:
-        df = pd.read_csv("【公開用】キャロットクラブ2025募集馬リスト - list.csv", encoding="cp932")
+        df = pd.read_csv("list.csv", encoding="cp932")
     
     # 生年月日のデータ型を日付型（datetime）に変換し、月を取り出す処理を追加
     # "05/02" のような形式を想定
