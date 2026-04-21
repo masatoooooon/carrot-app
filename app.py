@@ -4,7 +4,7 @@ import plotly.express as px
 
 # --- ページ設定 ---
 st.set_page_config(page_title="キャロットクラブ2025 分析ツール", layout="wide")
-st.title("🏇 キャロットクラブ2025 募集馬分析ツール (ローカルテスト版)")
+st.title("🏇 キャロットクラブ2025 募集馬分析ツール")
 
 # --- カスタムCSSの適用（ダイアログの縦幅を広げる） ---
 st.markdown("""
