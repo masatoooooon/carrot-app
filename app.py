@@ -291,15 +291,15 @@ if len(filtered_df) > 0:
 else:
     st.warning("条件に一致する馬がいません。フィルターを変更してください。")
 
-# --- 可視化：散布図 ---
+# キャロット風カラーパレット（グリーン、オレンジ、ゴールド等を基調に）
+carrot_colors = ['#004d25', '#f05a28', '#a38753', '#1c2833', '#7b241c', '#0e6655', '#d35400', '#17202a']
+
+# --- 可視化1：散布図 ---
 st.subheader("📈 馬体重 × 管囲 × 価格帯 の関係")
 st.markdown("横軸に馬体重、縦軸に管囲を取り、**バブルの大きさで価格帯**、**色で種牡馬**を表現しています。マウスを合わせると詳細が表示されます。")
 
 if len(filtered_df) > 0:
-    # キャロット風カラーパレット（グリーン、オレンジ、ゴールド等を基調に）
-    carrot_colors = ['#004d25', '#f05a28', '#a38753', '#1c2833', '#7b241c', '#0e6655', '#d35400', '#17202a']
-    
-    fig = px.scatter(
+    fig_scatter = px.scatter(
         filtered_df, 
         x="馬体重", 
         y="管囲", 
@@ -308,14 +308,57 @@ if len(filtered_df) > 0:
         hover_name="募集馬名",
         # ツールチップに生年月日と厩舎を追加
         hover_data={"厩舎": True, "生年月日": True, "募集価格": True, "価格帯": False},
-        height=600,
+        height=500,
         color_discrete_sequence=carrot_colors
     )
     # グラフのレイアウト調整
-    fig.update_layout(xaxis_title="馬体重 (kg)", yaxis_title="管囲 (cm)")
-    st.plotly_chart(fig, use_container_width=True)
+    fig_scatter.update_layout(xaxis_title="馬体重 (kg)", yaxis_title="管囲 (cm)")
+    st.plotly_chart(fig_scatter, use_container_width=True)
 
-# --- 新しい可視化：厩舎別の平均馬体重・管囲（棒グラフ） ---
+# グラフを横に並べるためのレイアウト（2カラム）
+col_g1, col_g2 = st.columns(2)
+
+# --- 可視化2：価格帯の分布（ヒストグラム） ---
+with col_g1:
+    st.subheader("💴 募集価格帯の分布")
+    if len(filtered_df) > 0:
+        fig_price = px.histogram(
+            filtered_df,
+            x="価格帯",
+            color="性",
+            title="価格帯別の募集馬数",
+            labels={"価格帯": "募集価格 (万円)", "性": "性別"},
+            nbins=20,
+            color_discrete_sequence=['#004d25', '#f05a28'] # 牡と牝の色分け
+        )
+        fig_price.update_layout(yaxis_title="頭数", height=400)
+        st.plotly_chart(fig_price, use_container_width=True)
+
+# --- 可視化3：種牡馬別の募集馬頭数（横棒グラフ） ---
+with col_g2:
+    st.subheader("🐎 種牡馬別の募集馬頭数")
+    if len(filtered_df) > 0:
+        # 種牡馬ごとの頭数をカウント
+        sire_counts = filtered_df['父名'].value_counts().reset_index()
+        sire_counts.columns = ['父名', '頭数']
+        
+        # 上位15頭のみ表示（見やすさのため）
+        top_sires = sire_counts.head(15)
+        
+        fig_sire = px.bar(
+            top_sires,
+            x='頭数',
+            y='父名',
+            orientation='h', # 横向きの棒グラフ
+            title="種牡馬別の頭数ランキング (上位15種牡馬)",
+            text_auto=True,
+            color='頭数',
+            color_continuous_scale=['#cce3d5', '#004d25'] # キャロットグリーンのグラデーション
+        )
+        fig_sire.update_layout(yaxis={'categoryorder':'total ascending'}, height=400) # 頭数順に並び替え
+        st.plotly_chart(fig_sire, use_container_width=True)
+
+# --- 可視化4：厩舎別の平均馬体重・管囲（棒グラフ） ---
 st.subheader("🏢 厩舎別の体部アベレージ")
 if len(filtered_df) > 0:
     # 厩舎ごとの平均を計算
@@ -331,7 +374,7 @@ if len(filtered_df) > 0:
         color='馬体重',
         color_continuous_scale=['#cce3d5', '#004d25'] # 薄緑からキャロットグリーンへのグラデーション
     )
-    fig_trainer.update_layout(xaxis_tickangle=-45) # 厩舎名が重ならないように斜めにする
+    fig_trainer.update_layout(xaxis_tickangle=-45, height=500) # 厩舎名が重ならないように斜めにする
     st.plotly_chart(fig_trainer, use_container_width=True)
 
 # --- データテーブル ---
