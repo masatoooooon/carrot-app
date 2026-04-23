@@ -449,4 +449,13 @@ with col_dl1:
         use_container_width=True
     )
 
-st.dataframe(filtered_df[display_columns], use_container_width=True)
+# 💡 データ件数に合わせて表の高さを自動計算し、内部スクロールをなくす（1行あたり約35px ＋ ヘッダー部分40px）
+table_height = max(len(filtered_df) * 35 + 40, 150)
+
+# hide_index=True で左端の不要な連番(0,1,2...)を隠してスッキリ見せます
+st.dataframe(
+    filtered_df[display_columns], 
+    use_container_width=True, 
+    height=table_height, 
+    hide_index=True
+)
