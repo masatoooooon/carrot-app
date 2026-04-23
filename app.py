@@ -51,6 +51,19 @@ button[kind="secondary"]:hover {
 div.stSlider > div > div > div > div {
     background-color: #004d25 !important;
 }
+
+/* マルチセレクトの選択タグ（チップ）の色をキャロットグリーンに強制変更 */
+div[data-testid="stMultiSelect"] span[data-baseweb="tag"] {
+    background-color: #004d25 !important;
+    background: #004d25 !important;
+}
+div[data-testid="stMultiSelect"] span[data-baseweb="tag"] span {
+    color: white !important;
+}
+div[data-testid="stMultiSelect"] span[data-baseweb="tag"] svg {
+    fill: white !important;
+    color: white !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
