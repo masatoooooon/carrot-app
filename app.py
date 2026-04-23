@@ -181,136 +181,137 @@ def trainer_dialog():
             st.rerun()
 
 # --- サイドバー：フィルター機能 ---
-st.sidebar.header("🔍 分析条件の設定")
-st.sidebar.caption("※不要な項目の「×」を押して対象を絞り込んでください。")
+with sidebar_main:
+    st.header("🔍 分析条件の設定")
+    st.caption("※不要な項目の「×」を押して対象を絞り込んでください。")
 
-if st.sidebar.button("🔄 すべての条件をリセット", type="primary", use_container_width=True):
-    st.session_state.selected_sire = sire_options
-    st.session_state.selected_bms = bms_options
-    st.session_state.selected_trainer = trainer_options
-    st.session_state.key_shozoku = sorted(df['所属'].dropna().unique()) if '所属' in df.columns else []
-    st.session_state.key_sex = sorted(df['性'].dropna().unique()) if '性' in df.columns else []
-    st.session_state.key_bousyu = sorted(df['母優'].dropna().unique()) if '母優' in df.columns else []
-    st.session_state.key_farm = sorted(df['育成牧場'].dropna().unique()) if '育成牧場' in df.columns else []
-    st.session_state.key_month = (int(df['誕生月'].min(skipna=True)), int(df['誕生月'].max(skipna=True))) if '誕生月' in df.columns else (1, 12)
-    st.session_state.key_price = (int(df['価格帯'].min(skipna=True)), int(df['価格帯'].max(skipna=True))) if '価格帯' in df.columns else (0, 10000)
-    st.session_state.key_height = (float(df['体高'].min(skipna=True)), float(df['体高'].max(skipna=True))) if '体高' in df.columns else (0.0, 200.0)
-    st.session_state.key_chest = (float(df['胸囲'].min(skipna=True)), float(df['胸囲'].max(skipna=True))) if '胸囲' in df.columns else (0.0, 250.0)
-    st.session_state.key_canon = (float(df['管囲'].min(skipna=True)), float(df['管囲'].max(skipna=True))) if '管囲' in df.columns else (0.0, 30.0)
-    st.session_state.key_weight = (float(df['馬体重'].min(skipna=True)), float(df['馬体重'].max(skipna=True))) if '馬体重' in df.columns else (0.0, 600.0)
-    st.rerun()
+    if st.button("🔄 すべての条件をリセット", type="primary", use_container_width=True):
+        st.session_state.selected_sire = sire_options
+        st.session_state.selected_bms = bms_options
+        st.session_state.selected_trainer = trainer_options
+        st.session_state.key_shozoku = sorted(df['所属'].dropna().unique()) if '所属' in df.columns else []
+        st.session_state.key_sex = sorted(df['性'].dropna().unique()) if '性' in df.columns else []
+        st.session_state.key_bousyu = sorted(df['母優'].dropna().unique()) if '母優' in df.columns else []
+        st.session_state.key_farm = sorted(df['育成牧場'].dropna().unique()) if '育成牧場' in df.columns else []
+        st.session_state.key_month = (int(df['誕生月'].min(skipna=True)), int(df['誕生月'].max(skipna=True))) if '誕生月' in df.columns else (1, 12)
+        st.session_state.key_price = (int(df['価格帯'].min(skipna=True)), int(df['価格帯'].max(skipna=True))) if '価格帯' in df.columns else (0, 10000)
+        st.session_state.key_height = (float(df['体高'].min(skipna=True)), float(df['体高'].max(skipna=True))) if '体高' in df.columns else (0.0, 200.0)
+        st.session_state.key_chest = (float(df['胸囲'].min(skipna=True)), float(df['胸囲'].max(skipna=True))) if '胸囲' in df.columns else (0.0, 250.0)
+        st.session_state.key_canon = (float(df['管囲'].min(skipna=True)), float(df['管囲'].max(skipna=True))) if '管囲' in df.columns else (0.0, 30.0)
+        st.session_state.key_weight = (float(df['馬体重'].min(skipna=True)), float(df['馬体重'].max(skipna=True))) if '馬体重' in df.columns else (0.0, 600.0)
+        st.rerun()
 
-# 所属フィルターを追加
-shozoku_options = sorted(df['所属'].dropna().unique())
-selected_shozoku = st.sidebar.multiselect(
-    "所属", 
-    options=shozoku_options, 
-    default=shozoku_options,
-    key="key_shozoku"
-)
-filter_shozoku = selected_shozoku
+    # 所属フィルターを追加
+    shozoku_options = sorted(df['所属'].dropna().unique())
+    selected_shozoku = st.multiselect(
+        "所属", 
+        options=shozoku_options, 
+        default=shozoku_options,
+        key="key_shozoku"
+    )
+    filter_shozoku = selected_shozoku
 
-# 性別フィルター
-sex_options = sorted(df['性'].dropna().unique())
-selected_sex = st.sidebar.multiselect(
-    "性別", 
-    options=sex_options, 
-    default=sex_options,
-    key="key_sex"
-)
-filter_sex = selected_sex
+    # 性別フィルター
+    sex_options = sorted(df['性'].dropna().unique())
+    selected_sex = st.multiselect(
+        "性別", 
+        options=sex_options, 
+        default=sex_options,
+        key="key_sex"
+    )
+    filter_sex = selected_sex
 
-# 母優先フィルターを追加
-bousyu_options = sorted(df['母優'].dropna().unique())
-selected_bousyu = st.sidebar.multiselect(
-    "母優先", 
-    options=bousyu_options, 
-    default=bousyu_options,
-    key="key_bousyu"
-)
-filter_bousyu = selected_bousyu
+    # 母優先フィルターを追加
+    bousyu_options = sorted(df['母優'].dropna().unique())
+    selected_bousyu = st.multiselect(
+        "母優先", 
+        options=bousyu_options, 
+        default=bousyu_options,
+        key="key_bousyu"
+    )
+    filter_bousyu = selected_bousyu
 
-# 育成牧場フィルター
-farm_options = sorted(df['育成牧場'].dropna().unique())
-selected_farm = st.sidebar.multiselect(
-    "育成牧場", 
-    options=farm_options, 
-    default=farm_options,
-    key="key_farm"
-)
-filter_farm = selected_farm
+    # 育成牧場フィルター
+    farm_options = sorted(df['育成牧場'].dropna().unique())
+    selected_farm = st.multiselect(
+        "育成牧場", 
+        options=farm_options, 
+        default=farm_options,
+        key="key_farm"
+    )
+    filter_farm = selected_farm
 
-# ダイアログを呼び出すボタン（種牡馬）
-st.sidebar.markdown("---")
-st.sidebar.subheader("🐎 種牡馬")
-if st.sidebar.button("🔍 種牡馬を選択する", use_container_width=True):
-    sire_dialog()
-st.sidebar.caption(f"選択中: {len(st.session_state.selected_sire)} / {len(sire_options)} 種類")
+    # ダイアログを呼び出すボタン（種牡馬）
+    st.markdown("---")
+    st.subheader("🐎 種牡馬")
+    if st.button("🔍 種牡馬を選択する", use_container_width=True):
+        sire_dialog()
+    st.caption(f"選択中: {len(st.session_state.selected_sire)} / {len(sire_options)} 種類")
 
-# ダイアログを呼び出すボタン（母父）
-st.sidebar.markdown("---")
-st.sidebar.subheader("🐴 母父")
-if st.sidebar.button("🔍 母父を選択する", use_container_width=True):
-    bms_dialog()
-st.sidebar.caption(f"選択中: {len(st.session_state.selected_bms)} / {len(bms_options)} 種類")
+    # ダイアログを呼び出すボタン（母父）
+    st.markdown("---")
+    st.subheader("🐴 母父")
+    if st.button("🔍 母父を選択する", use_container_width=True):
+        bms_dialog()
+    st.caption(f"選択中: {len(st.session_state.selected_bms)} / {len(bms_options)} 種類")
 
-# ダイアログを呼び出すボタン（厩舎）
-st.sidebar.markdown("---")
-st.sidebar.subheader("🏢 厩舎")
-if st.sidebar.button("🔍 厩舎を選択する", use_container_width=True):
-    trainer_dialog()
-st.sidebar.caption(f"選択中: {len(st.session_state.selected_trainer)} / {len(trainer_options)} 厩舎")
+    # ダイアログを呼び出すボタン（厩舎）
+    st.markdown("---")
+    st.subheader("🏢 厩舎")
+    if st.button("🔍 厩舎を選択する", use_container_width=True):
+        trainer_dialog()
+    st.caption(f"選択中: {len(st.session_state.selected_trainer)} / {len(trainer_options)} 厩舎")
 
-# 誕生月フィルターを追加（スライダー）
-min_month = int(df['誕生月'].min(skipna=True))
-max_month = int(df['誕生月'].max(skipna=True))
-selected_month_range = st.sidebar.slider(
-    "誕生月",
-    min_value=min_month,
-    max_value=max_month,
-    value=(min_month, max_month),
-    key="key_month"
-)
+    # 誕生月フィルターを追加（スライダー）
+    min_month = int(df['誕生月'].min(skipna=True))
+    max_month = int(df['誕生月'].max(skipna=True))
+    selected_month_range = st.slider(
+        "誕生月",
+        min_value=min_month,
+        max_value=max_month,
+        value=(min_month, max_month),
+        key="key_month"
+    )
 
-# 価格情報フィルター（スライダー）を追加
-st.sidebar.markdown("---")
-st.sidebar.subheader("💰 価格情報の設定")
+    # 価格情報フィルター（スライダー）を追加
+    st.markdown("---")
+    st.subheader("💰 価格情報の設定")
 
-min_price = int(df['価格帯'].min(skipna=True))
-max_price = int(df['価格帯'].max(skipna=True))
-selected_price = st.sidebar.slider(
-    "募集価格 (万円)", 
-    min_value=min_price, 
-    max_value=max_price, 
-    value=(min_price, max_price),
-    step=100,
-    key="key_price"
-)
+    min_price = int(df['価格帯'].min(skipna=True))
+    max_price = int(df['価格帯'].max(skipna=True))
+    selected_price = st.slider(
+        "募集価格 (万円)", 
+        min_value=min_price, 
+        max_value=max_price, 
+        value=(min_price, max_price),
+        step=100,
+        key="key_price"
+    )
 
-# 体部情報フィルター（スライダー）を追加
-st.sidebar.markdown("---")
-st.sidebar.subheader("📐 体部情報の設定")
+    # 体部情報フィルター（スライダー）を追加
+    st.markdown("---")
+    st.subheader("📐 体部情報の設定")
 
-min_height = float(df['体高'].min(skipna=True))
-max_height = float(df['体高'].max(skipna=True))
-selected_height = st.sidebar.slider("体高 (cm)", min_value=min_height, max_value=max_height, value=(min_height, max_height), key="key_height")
+    min_height = float(df['体高'].min(skipna=True))
+    max_height = float(df['体高'].max(skipna=True))
+    selected_height = st.slider("体高 (cm)", min_value=min_height, max_value=max_height, value=(min_height, max_height), key="key_height")
 
-min_chest = float(df['胸囲'].min(skipna=True))
-max_chest = float(df['胸囲'].max(skipna=True))
-selected_chest = st.sidebar.slider("胸囲 (cm)", min_value=min_chest, max_value=max_chest, value=(min_chest, max_chest), key="key_chest")
+    min_chest = float(df['胸囲'].min(skipna=True))
+    max_chest = float(df['胸囲'].max(skipna=True))
+    selected_chest = st.slider("胸囲 (cm)", min_value=min_chest, max_value=max_chest, value=(min_chest, max_chest), key="key_chest")
 
-min_canon = float(df['管囲'].min(skipna=True))
-max_canon = float(df['管囲'].max(skipna=True))
-selected_canon = st.sidebar.slider("管囲 (cm)", min_value=min_canon, max_value=max_canon, value=(min_canon, max_canon), key="key_canon")
+    min_canon = float(df['管囲'].min(skipna=True))
+    max_canon = float(df['管囲'].max(skipna=True))
+    selected_canon = st.slider("管囲 (cm)", min_value=min_canon, max_value=max_canon, value=(min_canon, max_canon), key="key_canon")
 
-min_weight = float(df['馬体重'].min(skipna=True))
-max_weight = float(df['馬体重'].max(skipna=True))
-selected_weight = st.sidebar.slider("馬体重 (kg)", min_value=min_weight, max_value=max_weight, value=(min_weight, max_weight), key="key_weight")
+    min_weight = float(df['馬体重'].min(skipna=True))
+    max_weight = float(df['馬体重'].max(skipna=True))
+    selected_weight = st.slider("馬体重 (kg)", min_value=min_weight, max_value=max_weight, value=(min_weight, max_weight), key="key_weight")
 
 # --- バージョン情報 ---
-st.sidebar.markdown("---")
-st.sidebar.caption("🥕 Stallion Select")
-st.sidebar.caption("Version 1.0.0")
+with sidebar_footer:
+    st.caption("🥕 Stallion Select")
+    st.caption("Version 1.0.0")
 
 # フィルターの適用
 filtered_df = df[
@@ -337,8 +338,8 @@ col1.metric("対象馬数", f"{len(filtered_df)} 頭")
 if len(filtered_df) > 0:
     col2.metric("平均馬体重", f"{filtered_df['馬体重'].mean():.1f} kg")
     col3.metric("平均管囲", f"{filtered_df['管囲'].mean():.1f} cm")
-    # 価格帯は数値（例：8000 = 8,000万円）として計算
-    col4.metric("平均価格帯", f"{filtered_df['価格帯'].mean() / 100:.1f} 万円")
+    # 平均募集価格に変更（価格帯カラムの数値をそのまま万円として表示）
+    col4.metric("平均募集価格", f"{filtered_df['価格帯'].mean():.1f} 万円")
 else:
     st.warning("条件に一致する馬がいません。フィルターを変更してください。")
 
