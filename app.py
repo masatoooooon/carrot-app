@@ -79,10 +79,17 @@ def load_data(uploaded_file=None):
     
     return df
 
-# --- サイドバー：データのアップロード ---
-st.sidebar.header("📁 データの読み込み")
-st.sidebar.caption("独自のCSVファイルをアップロードして分析できます。（指定しない場合はデフォルトデータを使用）")
-uploaded_file = st.sidebar.file_uploader("CSVファイルを選択", type=["csv"])
+# --- サイドバーのレイアウト枠を作成（表示順を固定） ---
+sidebar_main = st.sidebar.container()
+sidebar_upload = st.sidebar.container()
+sidebar_footer = st.sidebar.container()
+
+# --- サイドバー：データのアップロード（下部に配置） ---
+with sidebar_upload:
+    st.markdown("---")
+    st.header("📁 データの読み込み")
+    st.caption("独自のCSVファイルをアップロードして分析できます。（指定しない場合はデフォルトデータを使用）")
+    uploaded_file = st.file_uploader("CSVファイルを選択", type=["csv"])
 
 # データを読み込む
 df = load_data(uploaded_file)
