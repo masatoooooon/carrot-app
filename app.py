@@ -305,7 +305,7 @@ with sidebar_main:
 # --- バージョン情報 ---
 with sidebar_footer:
     st.caption("🥕 Stallion Select")
-    st.caption("Version 1.0.0")
+    st.caption("Version 1.1.0")
 
 # フィルターの適用
 filtered_df = df[
