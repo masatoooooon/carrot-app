@@ -3,8 +3,8 @@ import pandas as pd
 import plotly.express as px
 
 # --- ページ設定 ---
-st.set_page_config(page_title="キャロットクラブ2025 分析ツール", layout="wide")
-st.title("🏇 キャロットクラブ2025 募集馬分析ツール")
+st.set_page_config(page_title="Stallion Select", layout="wide")
+st.title("🏇 Stallion Select")
 
 # --- カスタムCSSの適用（ダイアログの縦幅を広げる） ---
 st.markdown("""
@@ -56,25 +56,49 @@ div.stSlider > div > div > div > div {
 
 # --- データの読み込み ---
 @st.cache_data
-def load_data():
+def load_data(uploaded_file=None):
     # CSVの読み込み（Windows/Macのエンコーディングの違いを吸収）
     try:
-        df = pd.read_csv("list.csv", encoding="utf-8")
+        if uploaded_file is not None:
+            # アップロードされたファイルを読み込む
+            df = pd.read_csv(uploaded_file, encoding="utf-8")
+        else:
+            # 指定がない場合はデフォルトのファイルを読み込む
+            df = pd.read_csv("list.csv", encoding="utf-8")
     except UnicodeDecodeError:
-        df = pd.read_csv("list.csv", encoding="cp932")
+        if uploaded_file is not None:
+            # エンコーディングエラーの場合はポインタを戻して再読み込み
+            uploaded_file.seek(0)
+            df = pd.read_csv(uploaded_file, encoding="cp932")
+        else:
+            df = pd.read_csv("list.csv", encoding="cp932")
     
     # 生年月日のデータ型を日付型（datetime）に変換し、月を取り出す処理を追加
-    # "05/02" のような形式を想定
-    df['誕生月'] = pd.to_datetime(df['生年月日'], format='%m/%d', errors='coerce').dt.month
+    if '生年月日' in df.columns:
+        df['誕生月'] = pd.to_datetime(df['生年月日'], format='%m/%d', errors='coerce').dt.month
     
     return df
 
-df = load_data()
+# --- サイドバー：データのアップロード ---
+st.sidebar.header("📁 データの読み込み")
+st.sidebar.caption("独自のCSVファイルをアップロードして分析できます。（指定しない場合はデフォルトデータを使用）")
+uploaded_file = st.sidebar.file_uploader("CSVファイルを選択", type=["csv"])
+
+# データを読み込む
+df = load_data(uploaded_file)
+
+# 💡 データが切り替わったときに、以前の選択状態をリセットする処理
+current_file_name = uploaded_file.name if uploaded_file is not None else "default_list.csv"
+if 'last_file_name' not in st.session_state or st.session_state.last_file_name != current_file_name:
+    for key in ['selected_sire', 'selected_bms', 'selected_trainer']:
+        if key in st.session_state:
+            del st.session_state[key]
+    st.session_state.last_file_name = current_file_name
 
 # --- 選択肢の準備とセッションステートの初期化 ---
-sire_options = sorted(df['父名'].dropna().unique())
-bms_options = sorted(df['母父'].dropna().unique())
-trainer_options = sorted(df['厩舎'].dropna().unique())
+sire_options = sorted(df['父名'].dropna().unique()) if '父名' in df.columns else []
+bms_options = sorted(df['母父'].dropna().unique()) if '母父' in df.columns else []
+trainer_options = sorted(df['厩舎'].dropna().unique()) if '厩舎' in df.columns else []
 
 if 'selected_sire' not in st.session_state:
     st.session_state.selected_sire = sire_options
@@ -261,6 +285,11 @@ min_weight = float(df['馬体重'].min(skipna=True))
 max_weight = float(df['馬体重'].max(skipna=True))
 selected_weight = st.sidebar.slider("馬体重 (kg)", min_value=min_weight, max_value=max_weight, value=(min_weight, max_weight))
 
+# --- バージョン情報 ---
+st.sidebar.markdown("---")
+st.sidebar.caption("🥕 Stallion Select")
+st.sidebar.caption("Version 1.0.0")
+
 # フィルターの適用
 filtered_df = df[
     (df['所属'].isin(filter_shozoku)) & 
@@ -379,6 +408,23 @@ if len(filtered_df) > 0:
 
 # --- データテーブル ---
 st.subheader("📋 募集馬リスト")
-# 表示項目に体高と胸囲も追加し、並び順を調整
-display_columns = ["No.", "募集馬名", "所属", "父名", "母父", "母優", "性", "生年月日", "厩舎", "募集価格", "体高", "胸囲", "管囲", "馬体重", "育成牧場"]
+
+# ダウンロード機能を追加
+# Excelで開いたときの文字化けを防ぐために utf-8-sig (BOM付きUTF-8) に変換
+default_display_columns = ["No.", "募集馬名", "所属", "父名", "母父", "母優", "性", "生年月日", "厩舎", "募集価格", "体高", "胸囲", "管囲", "馬体重", "育成牧場"]
+display_columns = [col for col in default_display_columns if col in filtered_df.columns]
+
+csv_data = filtered_df[display_columns].to_csv(index=False).encode('utf-8-sig')
+
+# ダウンロードボタンを左側に配置
+col_dl1, col_dl2 = st.columns([1, 2])
+with col_dl1:
+    st.download_button(
+        label="📥 表示中のリストをCSVでダウンロード",
+        data=csv_data,
+        file_name="carrot_filtered_list.csv",
+        mime="text/csv",
+        use_container_width=True
+    )
+
 st.dataframe(filtered_df[display_columns], use_container_width=True)
