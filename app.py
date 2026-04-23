@@ -56,51 +56,30 @@ div.stSlider > div > div > div > div {
 
 # --- データの読み込み ---
 @st.cache_data
-def load_data(uploaded_file=None):
+def load_data():
     # CSVの読み込み（Windows/Macのエンコーディングの違いを吸収）
     try:
-        if uploaded_file is not None:
-            # アップロードされたファイルを読み込む
-            df = pd.read_csv(uploaded_file, encoding="utf-8")
-        else:
-            # 指定がない場合はデフォルトのファイルを読み込む
-            df = pd.read_csv("list.csv", encoding="utf-8")
+        df = pd.read_csv("list.csv", encoding="utf-8")
     except UnicodeDecodeError:
-        if uploaded_file is not None:
-            # エンコーディングエラーの場合はポインタを戻して再読み込み
-            uploaded_file.seek(0)
-            df = pd.read_csv(uploaded_file, encoding="cp932")
-        else:
-            df = pd.read_csv("list.csv", encoding="cp932")
+        df = pd.read_csv("list.csv", encoding="cp932")
     
     # 生年月日のデータ型を日付型（datetime）に変換し、月を取り出す処理を追加
     if '生年月日' in df.columns:
         df['誕生月'] = pd.to_datetime(df['生年月日'], format='%m/%d', errors='coerce').dt.month
+        
+    # 💡 カンマが含まれる文字列データなどが計算でエラーにならないように数値型に変換
+    for col in ['募集価格', '体高', '胸囲', '管囲', '馬体重']:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', ''), errors='coerce')
     
     return df
 
+# データを読み込む
+df = load_data()
+
 # --- サイドバーのレイアウト枠を作成（表示順を固定） ---
 sidebar_main = st.sidebar.container()
-sidebar_upload = st.sidebar.container()
 sidebar_footer = st.sidebar.container()
-
-# --- サイドバー：データのアップロード（下部に配置） ---
-with sidebar_upload:
-    st.markdown("---")
-    st.header("📁 データの読み込み")
-    st.caption("独自のCSVファイルをアップロードして分析できます。（指定しない場合はデフォルトデータを使用）")
-    uploaded_file = st.file_uploader("CSVファイルを選択", type=["csv"])
-
-# データを読み込む
-df = load_data(uploaded_file)
-
-# 💡 データが切り替わったときに、以前の選択状態をリセットする処理
-current_file_name = uploaded_file.name if uploaded_file is not None else "default_list.csv"
-if 'last_file_name' not in st.session_state or st.session_state.last_file_name != current_file_name:
-    for key in ['selected_sire', 'selected_bms', 'selected_trainer']:
-        if key in st.session_state:
-            del st.session_state[key]
-    st.session_state.last_file_name = current_file_name
 
 # --- 選択肢の準備とセッションステートの初期化 ---
 sire_options = sorted(df['父名'].dropna().unique()) if '父名' in df.columns else []
@@ -200,14 +179,14 @@ with sidebar_main:
         st.session_state.key_sex = sorted(df['性'].dropna().unique()) if '性' in df.columns else []
         st.session_state.key_bousyu = sorted(df['母優'].dropna().unique()) if '母優' in df.columns else []
         st.session_state.key_farm = sorted(df['育成牧場'].dropna().unique()) if '育成牧場' in df.columns else []
-        st.session_state.key_month = (int(df['誕生月'].min(skipna=True)), int(df['誕生月'].max(skipna=True))) if '誕生月' in df.columns else (1, 12)
         
-        st.session_state.key_price = (int(df['募集価格'].min(skipna=True)), int(df['募集価格'].max(skipna=True))) if '募集価格' in df.columns else (0, 10000)
-        
-        st.session_state.key_height = (float(df['体高'].min(skipna=True)), float(df['体高'].max(skipna=True))) if '体高' in df.columns else (0.0, 200.0)
-        st.session_state.key_chest = (float(df['胸囲'].min(skipna=True)), float(df['胸囲'].max(skipna=True))) if '胸囲' in df.columns else (0.0, 250.0)
-        st.session_state.key_canon = (float(df['管囲'].min(skipna=True)), float(df['管囲'].max(skipna=True))) if '管囲' in df.columns else (0.0, 30.0)
-        st.session_state.key_weight = (float(df['馬体重'].min(skipna=True)), float(df['馬体重'].max(skipna=True))) if '馬体重' in df.columns else (0.0, 600.0)
+        # 💡 空欄データ(NaN)によるエラーを防ぐための安全な書き方に変更
+        st.session_state.key_month = (int(df['誕生月'].dropna().min()), int(df['誕生月'].dropna().max())) if '誕生月' in df.columns and not df['誕生月'].dropna().empty else (1, 12)
+        st.session_state.key_price = (int(df['募集価格'].dropna().min()), int(df['募集価格'].dropna().max())) if '募集価格' in df.columns and not df['募集価格'].dropna().empty else (0, 10000)
+        st.session_state.key_height = (float(df['体高'].dropna().min()), float(df['体高'].dropna().max())) if '体高' in df.columns and not df['体高'].dropna().empty else (0.0, 200.0)
+        st.session_state.key_chest = (float(df['胸囲'].dropna().min()), float(df['胸囲'].dropna().max())) if '胸囲' in df.columns and not df['胸囲'].dropna().empty else (0.0, 250.0)
+        st.session_state.key_canon = (float(df['管囲'].dropna().min()), float(df['管囲'].dropna().max())) if '管囲' in df.columns and not df['管囲'].dropna().empty else (0.0, 30.0)
+        st.session_state.key_weight = (float(df['馬体重'].dropna().min()), float(df['馬体重'].dropna().max())) if '馬体重' in df.columns and not df['馬体重'].dropna().empty else (0.0, 600.0)
         st.rerun()
 
     # 所属フィルターを追加
@@ -272,8 +251,9 @@ with sidebar_main:
     st.caption(f"選択中: {len(st.session_state.selected_trainer)} / {len(trainer_options)} 厩舎")
 
     # 誕生月フィルターを追加（スライダー）
-    min_month = int(df['誕生月'].min(skipna=True))
-    max_month = int(df['誕生月'].max(skipna=True))
+    min_month = int(df['誕生月'].dropna().min()) if '誕生月' in df.columns and not df['誕生月'].dropna().empty else 1
+    max_month = int(df['誕生月'].dropna().max()) if '誕生月' in df.columns and not df['誕生月'].dropna().empty else 12
+    if min_month == max_month: max_month = min_month + 1
     selected_month_range = st.slider(
         "誕生月",
         min_value=min_month,
@@ -286,8 +266,9 @@ with sidebar_main:
     st.markdown("---")
     st.subheader("💰 価格情報の設定")
 
-    min_price = int(df['募集価格'].min(skipna=True)) if '募集価格' in df.columns else 0
-    max_price = int(df['募集価格'].max(skipna=True)) if '募集価格' in df.columns else 10000
+    min_price = int(df['募集価格'].dropna().min()) if '募集価格' in df.columns and not df['募集価格'].dropna().empty else 0
+    max_price = int(df['募集価格'].dropna().max()) if '募集価格' in df.columns and not df['募集価格'].dropna().empty else 10000
+    if min_price == max_price: max_price = min_price + 100
     selected_price = st.slider(
         "募集価格 (万円)", 
         min_value=min_price, 
@@ -301,20 +282,24 @@ with sidebar_main:
     st.markdown("---")
     st.subheader("📐 体部情報の設定")
 
-    min_height = float(df['体高'].min(skipna=True))
-    max_height = float(df['体高'].max(skipna=True))
+    min_height = float(df['体高'].dropna().min()) if '体高' in df.columns and not df['体高'].dropna().empty else 0.0
+    max_height = float(df['体高'].dropna().max()) if '体高' in df.columns and not df['体高'].dropna().empty else 200.0
+    if min_height == max_height: max_height = min_height + 1.0
     selected_height = st.slider("体高 (cm)", min_value=min_height, max_value=max_height, value=(min_height, max_height), key="key_height")
 
-    min_chest = float(df['胸囲'].min(skipna=True))
-    max_chest = float(df['胸囲'].max(skipna=True))
+    min_chest = float(df['胸囲'].dropna().min()) if '胸囲' in df.columns and not df['胸囲'].dropna().empty else 0.0
+    max_chest = float(df['胸囲'].dropna().max()) if '胸囲' in df.columns and not df['胸囲'].dropna().empty else 250.0
+    if min_chest == max_chest: max_chest = min_chest + 1.0
     selected_chest = st.slider("胸囲 (cm)", min_value=min_chest, max_value=max_chest, value=(min_chest, max_chest), key="key_chest")
 
-    min_canon = float(df['管囲'].min(skipna=True))
-    max_canon = float(df['管囲'].max(skipna=True))
+    min_canon = float(df['管囲'].dropna().min()) if '管囲' in df.columns and not df['管囲'].dropna().empty else 0.0
+    max_canon = float(df['管囲'].dropna().max()) if '管囲' in df.columns and not df['管囲'].dropna().empty else 30.0
+    if min_canon == max_canon: max_canon = min_canon + 1.0
     selected_canon = st.slider("管囲 (cm)", min_value=min_canon, max_value=max_canon, value=(min_canon, max_canon), key="key_canon")
 
-    min_weight = float(df['馬体重'].min(skipna=True))
-    max_weight = float(df['馬体重'].max(skipna=True))
+    min_weight = float(df['馬体重'].dropna().min()) if '馬体重' in df.columns and not df['馬体重'].dropna().empty else 0.0
+    max_weight = float(df['馬体重'].dropna().max()) if '馬体重' in df.columns and not df['馬体重'].dropna().empty else 600.0
+    if min_weight == max_weight: max_weight = min_weight + 1.0
     selected_weight = st.slider("馬体重 (kg)", min_value=min_weight, max_value=max_weight, value=(min_weight, max_weight), key="key_weight")
 
 # --- バージョン情報 ---
