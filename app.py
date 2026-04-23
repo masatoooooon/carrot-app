@@ -201,7 +201,9 @@ with sidebar_main:
         st.session_state.key_bousyu = sorted(df['母優'].dropna().unique()) if '母優' in df.columns else []
         st.session_state.key_farm = sorted(df['育成牧場'].dropna().unique()) if '育成牧場' in df.columns else []
         st.session_state.key_month = (int(df['誕生月'].min(skipna=True)), int(df['誕生月'].max(skipna=True))) if '誕生月' in df.columns else (1, 12)
-        st.session_state.key_price = (int(df['価格帯'].min(skipna=True)), int(df['価格帯'].max(skipna=True))) if '価格帯' in df.columns else (0, 10000)
+        
+        st.session_state.key_price = (int(df['募集価格'].min(skipna=True)), int(df['募集価格'].max(skipna=True))) if '募集価格' in df.columns else (0, 10000)
+        
         st.session_state.key_height = (float(df['体高'].min(skipna=True)), float(df['体高'].max(skipna=True))) if '体高' in df.columns else (0.0, 200.0)
         st.session_state.key_chest = (float(df['胸囲'].min(skipna=True)), float(df['胸囲'].max(skipna=True))) if '胸囲' in df.columns else (0.0, 250.0)
         st.session_state.key_canon = (float(df['管囲'].min(skipna=True)), float(df['管囲'].max(skipna=True))) if '管囲' in df.columns else (0.0, 30.0)
@@ -284,8 +286,8 @@ with sidebar_main:
     st.markdown("---")
     st.subheader("💰 価格情報の設定")
 
-    min_price = int(df['価格帯'].min(skipna=True))
-    max_price = int(df['価格帯'].max(skipna=True))
+    min_price = int(df['募集価格'].min(skipna=True)) if '募集価格' in df.columns else 0
+    max_price = int(df['募集価格'].max(skipna=True)) if '募集価格' in df.columns else 10000
     selected_price = st.slider(
         "募集価格 (万円)", 
         min_value=min_price, 
@@ -330,7 +332,7 @@ filtered_df = df[
     (df['厩舎'].isin(st.session_state.selected_trainer)) &
     (df['育成牧場'].isin(filter_farm)) &
     (df['誕生月'].between(selected_month_range[0], selected_month_range[1])) &
-    (df['価格帯'].between(selected_price[0], selected_price[1])) &
+    (df['募集価格'].between(selected_price[0], selected_price[1]) if '募集価格' in df.columns else True) &
     (df['体高'].between(selected_height[0], selected_height[1])) &
     (df['胸囲'].between(selected_chest[0], selected_chest[1])) &
     (df['管囲'].between(selected_canon[0], selected_canon[1])) &
@@ -345,8 +347,8 @@ col1.metric("対象馬数", f"{len(filtered_df)} 頭")
 if len(filtered_df) > 0:
     col2.metric("平均馬体重", f"{filtered_df['馬体重'].mean():.1f} kg")
     col3.metric("平均管囲", f"{filtered_df['管囲'].mean():.1f} cm")
-    # 平均募集価格に変更（価格帯カラムの数値をそのまま万円として表示）
-    col4.metric("平均募集価格", f"{filtered_df['価格帯'].mean():.1f} 万円")
+    if '募集価格' in filtered_df.columns:
+        col4.metric("平均募集価格", f"{filtered_df['募集価格'].mean():.1f} 万円")
 else:
     st.warning("条件に一致する馬がいません。フィルターを変更してください。")
 
@@ -354,19 +356,18 @@ else:
 carrot_colors = ['#004d25', '#f05a28', '#a38753', '#1c2833', '#7b241c', '#0e6655', '#d35400', '#17202a']
 
 # --- 可視化1：散布図 ---
-st.subheader("📈 馬体重 × 管囲 × 価格帯 の関係")
-st.markdown("横軸に馬体重、縦軸に管囲を取り、**バブルの大きさで価格帯**、**色で種牡馬**を表現しています。マウスを合わせると詳細が表示されます。")
+st.subheader("📈 馬体重 × 管囲 × 募集価格 の関係")
+st.markdown("横軸に馬体重、縦軸に管囲を取り、**バブルの大きさで募集価格**、**色で種牡馬**を表現しています。マウスを合わせると詳細が表示されます。")
 
-if len(filtered_df) > 0:
+if len(filtered_df) > 0 and '募集価格' in filtered_df.columns:
     fig_scatter = px.scatter(
         filtered_df, 
         x="馬体重", 
         y="管囲", 
-        size="価格帯", 
+        size="募集価格", 
         color="父名",
         hover_name="募集馬名",
-        # ツールチップに生年月日と厩舎を追加
-        hover_data={"厩舎": True, "生年月日": True, "募集価格": True, "価格帯": False},
+        hover_data={"厩舎": True, "生年月日": True, "募集価格": True},
         height=500,
         color_discrete_sequence=carrot_colors
     )
@@ -377,16 +378,16 @@ if len(filtered_df) > 0:
 # グラフを横に並べるためのレイアウト（2カラム）
 col_g1, col_g2 = st.columns(2)
 
-# --- 可視化2：価格帯の分布（ヒストグラム） ---
+# --- 可視化2：募集価格の分布（ヒストグラム） ---
 with col_g1:
-    st.subheader("💴 募集価格帯の分布")
-    if len(filtered_df) > 0:
+    st.subheader("💴 募集価格の分布")
+    if len(filtered_df) > 0 and '募集価格' in filtered_df.columns:
         fig_price = px.histogram(
             filtered_df,
-            x="価格帯",
+            x="募集価格",
             color="性",
-            title="価格帯別の募集馬数",
-            labels={"価格帯": "募集価格 (万円)", "性": "性別"},
+            title="募集価格別の募集馬数",
+            labels={"募集価格": "募集価格 (万円)", "性": "性別"},
             nbins=20,
             color_discrete_sequence=['#004d25', '#f05a28'] # 牡と牝の色分け
         )
