@@ -184,12 +184,29 @@ def trainer_dialog():
 st.sidebar.header("🔍 分析条件の設定")
 st.sidebar.caption("※不要な項目の「×」を押して対象を絞り込んでください。")
 
+if st.sidebar.button("🔄 すべての条件をリセット", type="primary", use_container_width=True):
+    st.session_state.selected_sire = sire_options
+    st.session_state.selected_bms = bms_options
+    st.session_state.selected_trainer = trainer_options
+    st.session_state.key_shozoku = sorted(df['所属'].dropna().unique()) if '所属' in df.columns else []
+    st.session_state.key_sex = sorted(df['性'].dropna().unique()) if '性' in df.columns else []
+    st.session_state.key_bousyu = sorted(df['母優'].dropna().unique()) if '母優' in df.columns else []
+    st.session_state.key_farm = sorted(df['育成牧場'].dropna().unique()) if '育成牧場' in df.columns else []
+    st.session_state.key_month = (int(df['誕生月'].min(skipna=True)), int(df['誕生月'].max(skipna=True))) if '誕生月' in df.columns else (1, 12)
+    st.session_state.key_price = (int(df['価格帯'].min(skipna=True)), int(df['価格帯'].max(skipna=True))) if '価格帯' in df.columns else (0, 10000)
+    st.session_state.key_height = (float(df['体高'].min(skipna=True)), float(df['体高'].max(skipna=True))) if '体高' in df.columns else (0.0, 200.0)
+    st.session_state.key_chest = (float(df['胸囲'].min(skipna=True)), float(df['胸囲'].max(skipna=True))) if '胸囲' in df.columns else (0.0, 250.0)
+    st.session_state.key_canon = (float(df['管囲'].min(skipna=True)), float(df['管囲'].max(skipna=True))) if '管囲' in df.columns else (0.0, 30.0)
+    st.session_state.key_weight = (float(df['馬体重'].min(skipna=True)), float(df['馬体重'].max(skipna=True))) if '馬体重' in df.columns else (0.0, 600.0)
+    st.rerun()
+
 # 所属フィルターを追加
 shozoku_options = sorted(df['所属'].dropna().unique())
 selected_shozoku = st.sidebar.multiselect(
     "所属", 
     options=shozoku_options, 
-    default=shozoku_options # 最初から全て選択
+    default=shozoku_options,
+    key="key_shozoku"
 )
 filter_shozoku = selected_shozoku
 
@@ -198,7 +215,8 @@ sex_options = sorted(df['性'].dropna().unique())
 selected_sex = st.sidebar.multiselect(
     "性別", 
     options=sex_options, 
-    default=sex_options # 最初から全て選択
+    default=sex_options,
+    key="key_sex"
 )
 filter_sex = selected_sex
 
@@ -207,7 +225,8 @@ bousyu_options = sorted(df['母優'].dropna().unique())
 selected_bousyu = st.sidebar.multiselect(
     "母優先", 
     options=bousyu_options, 
-    default=bousyu_options # 最初から全て選択
+    default=bousyu_options,
+    key="key_bousyu"
 )
 filter_bousyu = selected_bousyu
 
@@ -216,7 +235,8 @@ farm_options = sorted(df['育成牧場'].dropna().unique())
 selected_farm = st.sidebar.multiselect(
     "育成牧場", 
     options=farm_options, 
-    default=farm_options # 最初から全て選択
+    default=farm_options,
+    key="key_farm"
 )
 filter_farm = selected_farm
 
@@ -248,7 +268,8 @@ selected_month_range = st.sidebar.slider(
     "誕生月",
     min_value=min_month,
     max_value=max_month,
-    value=(min_month, max_month)
+    value=(min_month, max_month),
+    key="key_month"
 )
 
 # 価格情報フィルター（スライダー）を追加
@@ -262,7 +283,8 @@ selected_price = st.sidebar.slider(
     min_value=min_price, 
     max_value=max_price, 
     value=(min_price, max_price),
-    step=100
+    step=100,
+    key="key_price"
 )
 
 # 体部情報フィルター（スライダー）を追加
@@ -271,19 +293,19 @@ st.sidebar.subheader("📐 体部情報の設定")
 
 min_height = float(df['体高'].min(skipna=True))
 max_height = float(df['体高'].max(skipna=True))
-selected_height = st.sidebar.slider("体高 (cm)", min_value=min_height, max_value=max_height, value=(min_height, max_height))
+selected_height = st.sidebar.slider("体高 (cm)", min_value=min_height, max_value=max_height, value=(min_height, max_height), key="key_height")
 
 min_chest = float(df['胸囲'].min(skipna=True))
 max_chest = float(df['胸囲'].max(skipna=True))
-selected_chest = st.sidebar.slider("胸囲 (cm)", min_value=min_chest, max_value=max_chest, value=(min_chest, max_chest))
+selected_chest = st.sidebar.slider("胸囲 (cm)", min_value=min_chest, max_value=max_chest, value=(min_chest, max_chest), key="key_chest")
 
 min_canon = float(df['管囲'].min(skipna=True))
 max_canon = float(df['管囲'].max(skipna=True))
-selected_canon = st.sidebar.slider("管囲 (cm)", min_value=min_canon, max_value=max_canon, value=(min_canon, max_canon))
+selected_canon = st.sidebar.slider("管囲 (cm)", min_value=min_canon, max_value=max_canon, value=(min_canon, max_canon), key="key_canon")
 
 min_weight = float(df['馬体重'].min(skipna=True))
 max_weight = float(df['馬体重'].max(skipna=True))
-selected_weight = st.sidebar.slider("馬体重 (kg)", min_value=min_weight, max_value=max_weight, value=(min_weight, max_weight))
+selected_weight = st.sidebar.slider("馬体重 (kg)", min_value=min_weight, max_value=max_weight, value=(min_weight, max_weight), key="key_weight")
 
 # --- バージョン情報 ---
 st.sidebar.markdown("---")
