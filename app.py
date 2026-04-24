@@ -3,8 +3,8 @@ import pandas as pd
 import plotly.express as px
 
 # --- ページ設定 ---
-st.set_page_config(page_title="Stallion Select", layout="wide")
-st.title("🏇 Stallion Select")
+st.set_page_config(page_title="Owner's Eye", layout="wide")
+st.title("🏇 Owner's Eye")
 
 # --- カスタムCSSの適用（ダイアログの縦幅を広げる） ---
 st.markdown("""
@@ -317,8 +317,8 @@ with sidebar_main:
 
 # --- バージョン情報 ---
 with sidebar_footer:
-    st.caption("🥕 Stallion Select")
-    st.caption("Version 1.1.0")
+    st.caption("🥕 Owner's Eye")
+    st.caption("Version 1.1.2")
 
 # フィルターの適用
 filtered_df = df[
