@@ -110,6 +110,14 @@ def load_data():
     if '募集価格' in df.columns and '馬体重' in df.columns:
         # 1kgあたりの募集価格（万円）を計算（コスパの目安）
         df['体重単価(万円/kg)'] = (df['募集価格'] / df['馬体重']).round(2)
+        
+    if '胸囲' in df.columns and '体高' in df.columns:
+        # 胸囲(cm) / 体高(cm) * 100 で比率を計算（心肺機能・パワーの目安）
+        df['胸囲体高比(%)'] = (df['胸囲'] / df['体高'] * 100).round(2)
+
+    if '馬体重' in df.columns and '体高' in df.columns:
+        # 馬体重(kg) / 体高(cm) で1cmあたりの体重を計算（距離適性の目安）
+        df['馬体BMI(kg/cm)'] = (df['馬体重'] / df['体高']).round(2)
     
     return df
 
@@ -344,7 +352,7 @@ with sidebar_main:
 # --- バージョン情報 ---
 with sidebar_footer:
     st.caption("🥕 Owner's Eye")
-    st.caption("Version 1.2.0")
+    st.caption("Version 1.3.0")
 
 # フィルターの適用
 filtered_df = df[
@@ -464,13 +472,26 @@ if len(filtered_df) > 0:
 # --- 独自分析：リスク＆コスパ ---
 st.markdown("---")
 st.subheader("👁️ Owner's Eye 独自指標ランキング")
-st.markdown("マニアックな視点で算出した独自の指標に基づき、現在のフィルター条件内でのランキングを表示します。")
+st.markdown("""
+マニアックな視点で算出した独自の指標に基づき、現在のフィルター条件内でのランキングを表示します。
+各指標の計算式と意味は以下の通りです。
+
+* **🛡️ 脚元安心度 (管囲体重比)** ＝ `(管囲 ÷ 馬体重) × 100` (%)
+    * 体重に対して脚の骨（管囲）がどれくらい太いかを示します。数値が大きいほど脚元がしっかりしており、怪我のリスクが低いと考えられる指標です。
+* **🛒 お買い得度 (体重単価)** ＝ `募集価格 ÷ 馬体重` (万円/kg)
+    * 1kgあたりの値段を割り出します。数値が小さいほど、価格の割に馬格が立派な「お買い得馬」であると考えられます。
+* **🫀 心肺機能＆パワー指標 (胸囲体高比)** ＝ `(胸囲 ÷ 体高) × 100` (%)
+    * 背の高さに対して、どれだけ胸が深いか（ガッチリしているか）を示します。数値が大きいほど心肺機能が高く、パワー型の馬（ダートや短距離、タフな馬場向き）である傾向があります。
+* **🏃‍♂️ ムキムキ度／距離適性 (馬体BMI)** ＝ `馬体重 ÷ 体高` (kg/cm)
+    * 1cmあたりの体重を示します。数値が高い（重い）と筋肉ムキムキの「短距離（スプリンター）体型」、数値が低い（軽い）とすらっとした「長距離（ステイヤー）体型」という推測の目安になります。（※ここでは重い順にトップ10を表示しています）
+""")
 
 col_a1, col_a2 = st.columns(2)
+col_a3, col_a4 = st.columns(2)
 
 with col_a1:
     if len(filtered_df) > 0 and '管囲体重比(%)' in filtered_df.columns:
-        st.markdown("##### 🛡️ 脚元安心度 (管囲/馬体重)")
+        st.markdown("##### 🛡️ 脚元安心度")
         st.caption("※体重に対して管囲が太い（比率が高い）上位10頭")
         # 値が大きい順に10頭取得
         top_risk = filtered_df.dropna(subset=['管囲体重比(%)']).sort_values('管囲体重比(%)', ascending=False).head(10)
@@ -488,7 +509,7 @@ with col_a1:
 
 with col_a2:
     if len(filtered_df) > 0 and '体重単価(万円/kg)' in filtered_df.columns:
-        st.markdown("##### 🛒 お買い得度 (1kgあたり単価)")
+        st.markdown("##### 🛒 お買い得度")
         st.caption("※1kgあたりの価格が安い（コスパが良い）上位10頭")
         # 値が小さい順に10頭取得
         top_cospa = filtered_df.dropna(subset=['体重単価(万円/kg)']).sort_values('体重単価(万円/kg)', ascending=True).head(10)
@@ -505,11 +526,46 @@ with col_a2:
         fig_cospa.update_layout(yaxis={'categoryorder':'total descending'}, height=400) 
         st.plotly_chart(fig_cospa, use_container_width=True)
 
+with col_a3:
+    if len(filtered_df) > 0 and '胸囲体高比(%)' in filtered_df.columns:
+        st.markdown("##### 🫀 心肺機能＆パワー")
+        st.caption("※体高に対して胸囲が大きい（比率が高い）上位10頭")
+        top_chest = filtered_df.dropna(subset=['胸囲体高比(%)']).sort_values('胸囲体高比(%)', ascending=False).head(10)
+        fig_chest = px.bar(
+            top_chest,
+            x='胸囲体高比(%)',
+            y='募集馬名',
+            orientation='h',
+            text_auto='.2f',
+            color='胸囲体高比(%)',
+            color_continuous_scale=['#cce3d5', '#004d25']
+        )
+        fig_chest.update_layout(yaxis={'categoryorder':'total ascending'}, height=400)
+        st.plotly_chart(fig_chest, use_container_width=True)
+
+with col_a4:
+    if len(filtered_df) > 0 and '馬体BMI(kg/cm)' in filtered_df.columns:
+        st.markdown("##### 🏃‍♂️ ムキムキ度")
+        st.caption("※1cmあたりの体重が重い（筋肉量が多い傾向）上位10頭")
+        top_bmi = filtered_df.dropna(subset=['馬体BMI(kg/cm)']).sort_values('馬体BMI(kg/cm)', ascending=False).head(10)
+        fig_bmi = px.bar(
+            top_bmi,
+            x='馬体BMI(kg/cm)',
+            y='募集馬名',
+            orientation='h',
+            text_auto='.2f',
+            color='馬体BMI(kg/cm)',
+            color_continuous_scale=['#cce3d5', '#004d25']
+        )
+        fig_bmi.update_layout(yaxis={'categoryorder':'total ascending'}, height=400)
+        st.plotly_chart(fig_bmi, use_container_width=True)
+
+
 # --- データテーブル ---
 st.subheader("📋 募集馬リスト")
 
-# ★表示項目に「管囲体重比(%)」と「体重単価(万円/kg)」を追加！
-default_display_columns = ["No.", "募集馬名", "所属", "父名", "母父", "母優", "性", "生年月日", "厩舎", "募集価格", "体高", "胸囲", "管囲", "馬体重", "管囲体重比(%)", "体重単価(万円/kg)", "育成牧場"]
+# ★表示項目に「胸囲体高比(%)」と「馬体BMI(kg/cm)」を追加！
+default_display_columns = ["No.", "募集馬名", "所属", "父名", "母父", "母優", "性", "生年月日", "厩舎", "募集価格", "体高", "胸囲", "管囲", "馬体重", "管囲体重比(%)", "体重単価(万円/kg)", "胸囲体高比(%)", "馬体BMI(kg/cm)", "育成牧場"]
 display_columns = [col for col in default_display_columns if col in filtered_df.columns]
 
 csv_data = filtered_df[display_columns].to_csv(index=False).encode('utf-8-sig')
