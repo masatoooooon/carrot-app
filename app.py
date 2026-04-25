@@ -452,12 +452,55 @@ if len(filtered_df) > 0:
     fig_trainer.update_layout(xaxis_tickangle=-45, height=500) # 厩舎名が重ならないように斜めにする
     st.plotly_chart(fig_trainer, use_container_width=True)
 
+# --- 独自分析：リスク＆コスパ ---
+st.markdown("---")
+st.subheader("👁️ Owner's Eye 独自指標ランキング")
+st.markdown("マニアックな視点で算出した独自の指標に基づき、現在のフィルター条件内でのランキングを表示します。")
+
+col_a1, col_a2 = st.columns(2)
+
+with col_a1:
+    if len(filtered_df) > 0 and '管囲体重比(%)' in filtered_df.columns:
+        st.markdown("##### 🛡️ 脚元安心度 (管囲/馬体重)")
+        st.caption("※体重に対して管囲が太い（比率が高い）上位10頭")
+        # 値が大きい順に10頭取得
+        top_risk = filtered_df.dropna(subset=['管囲体重比(%)']).sort_values('管囲体重比(%)', ascending=False).head(10)
+        fig_risk = px.bar(
+            top_risk,
+            x='管囲体重比(%)',
+            y='募集馬名',
+            orientation='h',
+            text_auto='.2f',
+            color='管囲体重比(%)',
+            color_continuous_scale=['#cce3d5', '#004d25']
+        )
+        fig_risk.update_layout(yaxis={'categoryorder':'total ascending'}, height=400)
+        st.plotly_chart(fig_risk, use_container_width=True)
+
+with col_a2:
+    if len(filtered_df) > 0 and '体重単価(万円/kg)' in filtered_df.columns:
+        st.markdown("##### 🛒 お買い得度 (1kgあたり単価)")
+        st.caption("※1kgあたりの価格が安い（コスパが良い）上位10頭")
+        # 値が小さい順に10頭取得
+        top_cospa = filtered_df.dropna(subset=['体重単価(万円/kg)']).sort_values('体重単価(万円/kg)', ascending=True).head(10)
+        fig_cospa = px.bar(
+            top_cospa,
+            x='体重単価(万円/kg)',
+            y='募集馬名',
+            orientation='h',
+            text_auto='.2f',
+            color='体重単価(万円/kg)',
+            color_continuous_scale=['#f05a28', '#fce5cd'] # 安い方が濃いオレンジになるように配色
+        )
+        # 安い順なので、値が小さいものが上に来るように設定
+        fig_cospa.update_layout(yaxis={'categoryorder':'total descending'}, height=400) 
+        st.plotly_chart(fig_cospa, use_container_width=True)
+
 # --- データテーブル ---
 st.subheader("📋 募集馬リスト")
 
-# ダウンロード機能を追加
-# Excelで開いたときの文字化けを防ぐために utf-8-sig (BOM付きUTF-8) に変換
-default_display_columns = ["No.", "募集馬名", "所属", "父名", "母父", "母優", "性", "生年月日", "厩舎", "募集価格", "体高", "胸囲", "管囲", "馬体重", "育成牧場"]
+# ★表示項目に「管囲体重比(%)」と「体重単価(万円/kg)」を追加！
+default_display_columns = ["No.", "募集馬名", "所属", "父名", "母父", "母優", "性", "生年月日", "厩舎", "募集価格", "体高", "胸囲", "管囲", "馬体重", "管囲体重比(%)", "体重単価(万円/kg)", "育成牧場"]
 display_columns = [col for col in default_display_columns if col in filtered_df.columns]
 
 csv_data = filtered_df[display_columns].to_csv(index=False).encode('utf-8-sig')
