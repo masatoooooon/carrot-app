@@ -101,6 +101,15 @@ def load_data():
     for col in ['募集価格', '体高', '胸囲', '管囲', '馬体重']:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col].astype(str).str.replace(',', ''), errors='coerce')
+            
+    # ★ 独自指標の計算（リスク＆コスパ分析）を追加 ★
+    if '管囲' in df.columns and '馬体重' in df.columns:
+        # 管囲(cm) / 馬体重(kg) * 100 で比率を計算（脚元リスクの目安）
+        df['管囲体重比(%)'] = (df['管囲'] / df['馬体重'] * 100).round(2)
+        
+    if '募集価格' in df.columns and '馬体重' in df.columns:
+        # 1kgあたりの募集価格（万円）を計算（コスパの目安）
+        df['体重単価(万円/kg)'] = (df['募集価格'] / df['馬体重']).round(2)
     
     return df
 
@@ -335,7 +344,7 @@ with sidebar_main:
 # --- バージョン情報 ---
 with sidebar_footer:
     st.caption("🥕 Owner's Eye")
-    st.caption("Version 1.1.3")
+    st.caption("Version 1.2.0")
 
 # フィルターの適用
 filtered_df = df[
