@@ -1,10 +1,27 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import streamlit.components.v1 as components
 
 # --- ページ設定 ---
 st.set_page_config(page_title="Owner's Eye", layout="wide")
 st.title("🏇 Owner's Eye")
+
+# --- Google Analytics (GA4) の導入 ---
+ga_tracking_id = "G-06K8TPML0W"
+ga_code = f"""
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id={ga_tracking_id}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){{dataLayer.push(arguments);}}
+  gtag('js', new Date());
+
+  gtag('config', '{ga_tracking_id}');
+</script>
+"""
+# 画面に見えない形でHTMLコードを埋め込む
+components.html(ga_code, height=0, width=0)
 
 # --- カスタムCSSの適用（ダイアログの縦幅を広げる） ---
 st.markdown("""
@@ -318,7 +335,7 @@ with sidebar_main:
 # --- バージョン情報 ---
 with sidebar_footer:
     st.caption("🥕 Owner's Eye")
-    st.caption("Version 1.1.2")
+    st.caption("Version 1.1.3")
 
 # フィルターの適用
 filtered_df = df[
